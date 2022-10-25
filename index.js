@@ -1,8 +1,9 @@
-'use strict'
 const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
+const dotenv = require('dotenv');
+dotenv.config();
 
-const token = '5175773703:AAG9ntBfob88aEKIe5jUHXbpDBKVVqsYQ-c';
+const token = process.env.TOKEN;
 const bot = new TelegramBot(token, {polling: true});
 const refreshTimeInMinutes = 2;
 
@@ -21,8 +22,7 @@ const setExchangeRate = async (chatId, text) => {
 const getCurrentRate = async () => {
   try {
     const data = await axios.get('https://api.tinkoff.ru/v1/currency_rates?from=EUR&to=RUB');
-    const eurRate = await data.data.payload.rates[5].buy;
-    return eurRate
+    return await data.data.payload.rates[5].buy
   } catch (err) {
     await bot.sendMessage(chatId, 'Oops, there is an error! Please try again later');
     console.log(err);
@@ -34,7 +34,7 @@ bot.on('message', async (msg) => {
   const text = msg.text;
   if (text === '/start') {
     chatsAndRates[chatId] = Infinity;
-    await bot.sendMessage(chatId, 'Это бот для мониторинга курса евро (coming soon: доллары). Введите пороговое значение и бот сообщит вам, если курс его достигнет. Курс проверяется каждые две минуты (в дальнейшем планиурую настраивать это время).');
+    await bot.sendMessage(chatId, 'Это бот для мониторинга курса евро (coming soon: доллары). Введите пороговое значение и бот сообщит вам, если курс его достигнет. Курс проверяется каждые две минуты.');
     return
   }
   if (text === '/currentrate') {
@@ -42,8 +42,8 @@ bot.on('message', async (msg) => {
     return
   }
   if (text.match(/^\d+$/)) {
-    setExchangeRate(chatId, text);
-    checkEUR();
+    await setExchangeRate(chatId, text);
+    await checkEUR();
     return
   }
   await bot.sendMessage(chatId, 'Такой команды бот не знает.');
@@ -55,7 +55,7 @@ const checkEUR = async () => {
     const eurRate = await response.data.payload.rates[5].buy;
     for (let key in chatsAndRates) {
       if (eurRate >= chatsAndRates[key]) {
-        bot.sendMessage(key, `TIME TO SELL! Курс превысил ${chatsAndRates[key]}.`);
+        await bot.sendMessage(key, `TIME TO SELL! Курс превысил ${chatsAndRates[key]}.`);
       }
     }
     return eurRate;
